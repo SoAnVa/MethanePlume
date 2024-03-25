@@ -46,17 +46,37 @@ def train_model(model, epochs, opt, loss, batch_size):
     :param loss: loss function instance
     :param batch_size: (int) batch size"""
     
-    # create the datasets
-    PATH_D_TRAIN=os.getcwd() + "/data/DataTrain/input_tiles/"
-    PATH_S_TRAIN=os.getcwd()+"/data/DataTrain/output_matrix/"
+
     PATH_D_TEST=os.getcwd()+"/data/DataTest/input_tiles/"
     PATH_S_TEST=os.getcwd()+"/data/DataTest/output_matrix/"
 
-    data_train = create_dataset(
+    # Original dataset paths
+    PATH_D_TRAIN = os.getcwd() + "/data/DataTrain/input_tiles/"
+    PATH_S_TRAIN = os.getcwd() + "/data/DataTrain/output_matrix/"
+    
+    # Augmented dataset paths
+    PATH_D_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_input_tiles/"
+    PATH_S_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_output_matrix/"
+    
+    # Load original dataset
+    data_train_original = create_dataset(
         datadir=PATH_D_TRAIN,
         segdir=PATH_S_TRAIN,
         band=bands,
-	apply_transforms=True)
+        apply_transforms=True  
+    )
+    
+    # Load augmented dataset
+    data_train_augmented = create_dataset(
+        datadir=PATH_D_TRAIN_AUG,
+        segdir=PATH_S_TRAIN_AUG,
+        band=bands,
+        apply_transforms=False  
+    )
+    
+    # Combine datasets
+    data_train = torch.utils.data.ConcatDataset([data_train_original, data_train_augmented])
+    
     
     data_val = create_dataset(
         datadir=PATH_D_TEST,
@@ -200,10 +220,10 @@ if __name__ == '__main__':
 
     # setup argument parser
     parser = argparse.ArgumentParser()
-    parser.add_argument('-ep', type=int, default=300,
+    parser.add_argument('-ep', type=int, default=200,
                     help='Number of epochs')
     parser.add_argument('-bs', type=int, nargs='?',
-                    default=60, help='Batch size')
+                    default=30, help='Batch size')
     parser.add_argument('-lr', type=float,
                     nargs='?', default=0.01, help='Learning rate')
     args = parser.parse_args()

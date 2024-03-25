@@ -30,7 +30,7 @@ bands_to_read = [1, 2, 3]  # For RGB visualization
 single_band_to_read = [12]  # Example: Visualize only the 3rd band
 
 # Example usage
-image_path2 = '/Users/vakili/Documents/Methane-Plume-Segmentation-main/data/DataTrain/augment_input_tiles/augmented_image_1.tif'
+image_path2 = '/Users/vakili/Documents/Methane-Plume-Segmentation-main/data/DataTrain/augment_input_tiles/augmented_image_2.tif'
 
 # Load the multi-band image for RGB visualization
 image_array_rgb = load_image_with_bands(image_path1, bands_to_read)

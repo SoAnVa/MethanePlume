@@ -7,14 +7,14 @@ import pandas as pd
 from data import PlumeSegmentationDataset
 
 #augmented data
-augmented_images_dir = './data/DataTrain/augment_input_tiles'
-augmented_masks_dir = './data/DataTrain/augment_output_matrix'
+augmented_images_dir = './data/DataTrain/augment_input_tiles/'
+augmented_masks_dir = './data/DataTrain/augment_output_matrix/'
 os.makedirs(augmented_images_dir, exist_ok=True)
 os.makedirs(augmented_masks_dir, exist_ok=True)
 
 #original dataset
-dataset = PlumeSegmentationDataset(datadir='./data/DataTrain/input_tiles',
-                                   segdir='./data/DataTrain/output_matrix')
+dataset = PlumeSegmentationDataset(datadir='./data/DataTrain/input_tiles/',
+                                   segdir='./data/DataTrain/output_matrix/')
 
 def augment_data(image, mask, original_height, original_width):
     # Random rotation
@@ -82,10 +82,10 @@ for idx in range(len(dataset)):
 
     # File paths
     augmented_image_path = os.path.join(augmented_images_dir, f'augmented_image_{idx}.tif')
-    augmented_mask_path = os.path.join(augmented_masks_dir, f'augmented_mask_{idx}.csv')
+    augmented_mask_path = os.path.join(augmented_masks_dir, f'augmented_image_{idx}.csv') #Frocement avoir le meme nom sinon probleme
 
     # Save the augmented image and mask
     save_tif_image(augmented_image, augmented_image_path)
     save_csv_mask(augmented_mask, augmented_mask_path)
 
-print("Augmented dataset generated successfully.")
+print("Augmented dataset generated successfully")

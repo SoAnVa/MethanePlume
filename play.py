@@ -1,38 +1,42 @@
 import os
 import numpy as np
-import rasterio as rio
-import matplotlib.pyplot as plt
+import torch
+from torch import nn, optim
+from tqdm.autonotebook import tqdm
+from sklearn.metrics import accuracy_score
+from torch.utils.data import DataLoader, random_split, RandomSampler
+from torch.utils.tensorboard import SummaryWriter
+import argparse
+from torchmetrics import JaccardIndex, Accuracy
+import time
+import random
+from torch.utils.data import ConcatDataset
 
-def load_image_with_bands(image_path, bands):
-    """Load specified bands from a .tif image and return as a numpy array."""
-    with rio.open(image_path) as imgfile:
-        imgdata = np.stack([imgfile.read(band) for band in bands], axis=-1)
-    return imgdata
+from model_unet import *
+from data import create_dataset
 
-def visualize_image(image_array, title="Image"):
-    """Visualize an image or a single band."""
-    plt.figure(figsize=(6, 6))
-    if image_array.ndim == 3 and image_array.shape[-1] > 1:  # Multi-band image
-        # Normalize or scale pixel values to 0-255 range for RGB visualization
-        display_image = (image_array - image_array.min()) / (image_array.max() - image_array.min())
-        display_image = (display_image * 255).astype(np.uint8)
-        plt.imshow(display_image)
-    elif image_array.ndim == 2 or image_array.shape[-1] == 1:  # Single band
-        # Normalize single band for visualization
-        plt.imshow(image_array, cmap='gray')
-    plt.title(title)
-    plt.axis('off')
-    plt.show()
+bands = [1,2,3,4,5,6,7,8,9,10,11,12,13]
+# create the datasets
+PATH_D_TRAIN="data/DataTrain/augment_input_tiles/"
+PATH_S_TRAIN="data/DataTrain/augment_output_matrix/"
+PATH_D_TEST=os.getcwd()+"/data/DataTest/input_tiles/"
+PATH_S_TEST=os.getcwd()+"/data/DataTest/output_matrix/"
 
-# Example usage
-image_path = '/Users/vakili/Documents/Methane-Plume-Segmentation-main/data/DataTrain/input_tiles/S2A_MSIL1C_20171008T064011_N0205_R120_T41SLA_20171008T064617_P933_0.tif'
-bands_to_read = [1, 2, 3]  # For RGB visualization
-single_band_to_read = [12]  # Example: Visualize only the 3rd band
+data_train = create_dataset(
+    datadir=PATH_D_TRAIN,
+    segdir=PATH_S_TRAIN,
+    band=bands,
+apply_transforms=True)
 
-# Load the multi-band image for RGB visualization
-image_array_rgb = load_image_with_bands(image_path, bands_to_read)
-visualize_image(image_array_rgb, "RGB Image")
+# data_val = create_dataset(
+#     datadir=PATH_D_TEST,
+#     segdir=PATH_S_TEST,
+#     band=bands,
+#     apply_transforms=False)
 
-# Load a single band for visualization
-image_array_single_band = load_image_with_bands(image_path, single_band_to_read).squeeze()
-visualize_image(image_array_single_band, "Single Band Image")
+
+# Concatenate the two datasets
+#combined_dataset = ConcatDataset([data_train, data_val])
+
+print(len(data_train))
+#print(len(data_train))

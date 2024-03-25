@@ -30,6 +30,7 @@ class PlumeSegmentationDataset():
             for filename in files:
               if not filename.endswith('.tif'):
                 print("Not ending in .tif")
+                print(filename)
                 continue
               self.imgfiles.append(os.path.join(root, filename))
               segfilename = filename.replace(".tif", ".csv")
