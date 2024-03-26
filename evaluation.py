@@ -53,7 +53,7 @@ def evaluate_model(model_path, test_data_path, test_labels_path, batch_size=1):
 
 if __name__ == "__main__":
     print("Script started")
-    model_path = "./mod/ep200_lr0.01_bs30_time12:23:46_idd31.model"
+    model_path = "mod/ep50_lr0.01_bs30_time12:23:46_idd31.model"
     test_data_path = "/Users/vakili/Documents/Methane-Plume-Segmentation-main/data/DataTrain/input_tiles"
     test_labels_path = "/Users/vakili/Documents/Methane-Plume-Segmentation-main/data/DataTrain/output_matrix"
     evaluate_model(model_path, test_data_path, test_labels_path)

@@ -29,7 +29,7 @@ def augment_data(image, mask, original_height, original_width):
     translated_image = shift(rotated_image, shift=[0, trans_y, trans_x], mode='nearest')
     translated_mask = shift(rotated_mask, shift=[trans_y, trans_x], mode='nearest')
 
-    # Random scaling (zoom in/out), preserving dimensions
+    # Random scaling + preserving dimensions
     scale_factor = random.uniform(0.8, 1.2)
     new_height = int(scale_factor * original_height)
     new_width = int(scale_factor * original_width)
@@ -61,7 +61,7 @@ def save_tif_image(image_array, file_path):
         height=image_array.shape[1],
         width=image_array.shape[2],
         count=image_array.shape[0],
-        dtype='float32',  # Ensure dtype matches your data or 'uint16' if needed
+        dtype='float32',  
         crs='+proj=latlong',
         transform=rasterio.transform.from_origin(-180, 180, 0.1, 0.1)
     ) as dst:
@@ -84,7 +84,7 @@ for idx in range(len(dataset)):
     augmented_image_path = os.path.join(augmented_images_dir, f'augmented_image_{idx}.tif')
     augmented_mask_path = os.path.join(augmented_masks_dir, f'augmented_image_{idx}.csv') #Frocement avoir le meme nom sinon probleme
 
-    # Save the augmented image and mask
+    # Save 
     save_tif_image(augmented_image, augmented_image_path)
     save_csv_mask(augmented_mask, augmented_mask_path)
 

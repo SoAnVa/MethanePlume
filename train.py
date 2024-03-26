@@ -53,7 +53,7 @@ def train_model(model, epochs, opt, loss, batch_size):
     # Original dataset paths
     PATH_D_TRAIN = os.getcwd() + "/data/DataTrain/input_tiles/"
     PATH_S_TRAIN = os.getcwd() + "/data/DataTrain/output_matrix/"
-    
+
     # Augmented dataset paths
     PATH_D_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_input_tiles/"
     PATH_S_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_output_matrix/"
@@ -77,6 +77,14 @@ def train_model(model, epochs, opt, loss, batch_size):
     # Combine datasets
     data_train = torch.utils.data.ConcatDataset([data_train_original, data_train_augmented])
     
+    
+    # Load original dataset
+    data_train= create_dataset(
+        datadir=PATH_D_TRAIN,
+        segdir=PATH_S_TRAIN,
+        band=bands,
+        apply_transforms=True  
+    )
     
     data_val = create_dataset(
         datadir=PATH_D_TEST,
@@ -220,7 +228,7 @@ if __name__ == '__main__':
 
     # setup argument parser
     parser = argparse.ArgumentParser()
-    parser.add_argument('-ep', type=int, default=200,
+    parser.add_argument('-ep', type=int, default=50,
                     help='Number of epochs')
     parser.add_argument('-bs', type=int, nargs='?',
                     default=30, help='Batch size')
@@ -232,8 +240,8 @@ if __name__ == '__main__':
     set_all_seeds(21)
     
     # model
-    bands = [1,2,3,4,5,6,7,8,9,10,11,12,13]
-    model = UNet(n_channels=13, n_classes=1)
+    bands = [11,12]
+    model = UNet(n_channels=2, n_classes=1)
     model.to(device)
     
     # trainning parameters
