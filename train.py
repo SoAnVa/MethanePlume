@@ -12,8 +12,8 @@ import time
 import random
 
 from model_unet import *
+from model_unet2 import *
 from data import create_dataset
-
 
 #Identification of the training
 t = time.localtime()
@@ -54,28 +54,28 @@ def train_model(model, epochs, opt, loss, batch_size):
     PATH_D_TRAIN = os.getcwd() + "/data/DataTrain/input_tiles/"
     PATH_S_TRAIN = os.getcwd() + "/data/DataTrain/output_matrix/"
 
-    # Augmented dataset paths
-    PATH_D_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_input_tiles/"
-    PATH_S_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_output_matrix/"
+    # # Augmented dataset paths
+    # PATH_D_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_input_tiles/"
+    # PATH_S_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_output_matrix/"
     
-    # Load original dataset
-    data_train_original = create_dataset(
-        datadir=PATH_D_TRAIN,
-        segdir=PATH_S_TRAIN,
-        band=bands,
-        apply_transforms=True  
-    )
+    # # Load original dataset
+    # data_train_original = create_dataset(
+    #     datadir=PATH_D_TRAIN,
+    #     segdir=PATH_S_TRAIN,
+    #     band=bands,
+    #     apply_transforms=True  
+    # )
     
-    # Load augmented dataset
-    data_train_augmented = create_dataset(
-        datadir=PATH_D_TRAIN_AUG,
-        segdir=PATH_S_TRAIN_AUG,
-        band=bands,
-        apply_transforms=False  
-    )
+    # # Load augmented dataset
+    # data_train_augmented = create_dataset(
+    #     datadir=PATH_D_TRAIN_AUG,
+    #     segdir=PATH_S_TRAIN_AUG,
+    #     band=bands,
+    #     apply_transforms=False  
+    # )
     
     # Combine datasets
-    data_train = torch.utils.data.ConcatDataset([data_train_original, data_train_augmented])
+    #data_train = torch.utils.data.ConcatDataset([data_train_original, data_train_augmented])
     
     
     # Load original dataset
@@ -221,6 +221,22 @@ def train_model(model, epochs, opt, loss, batch_size):
     return model
 
 
+class CustomLoss(nn.Module):
+    def __init__(self, smooth=1):
+        super(CustomLoss, self).__init__()
+        self.smooth = smooth
+        self.bce_with_logits_loss = nn.BCEWithLogitsLoss()
+
+    def forward(self, inputs, targets):
+        E = self.bce_with_logits_loss(inputs, targets)
+        inputs_sigmoid = torch.sigmoid(inputs)
+        intersection = (inputs_sigmoid * targets).sum()
+        total = (inputs_sigmoid + targets).sum()
+        union = total - intersection
+        J = (intersection + self.smooth) / (union + self.smooth)
+        L = E - torch.log(J)
+        return L
+
 
 
 ################## MAIN ##################
@@ -240,8 +256,8 @@ if __name__ == '__main__':
     set_all_seeds(21)
     
     # model
-    bands = [11,12]
-    model = UNet(n_channels=2, n_classes=1)
+    bands = [11,12,13,14,15,16,17]
+    model = UNet(n_channels=7, n_classes=1)
     model.to(device)
     
     # trainning parameters
@@ -254,10 +270,10 @@ if __name__ == '__main__':
     writer = SummaryWriter(PATH_RUNS+ f"ep{ep}_lr{lr}_bs{bs}_time{crt_time}_idd{idd}/")
     
     # initialize loss function
-    loss = nn.BCEWithLogitsLoss()
-    
+    #loss = nn.BCEWithLogitsLoss()
+    loss = CustomLoss(smooth=1)
     # initialize optimizer
-    opt = optim.Adam(model.parameters(),lr=lr, weight_decay=1e-4)
+    opt = optim.Adam(model.parameters(),lr=lr)
     
     # create the directory to save the models
     PATH_MOD=os.getcwd()+"/mod/"

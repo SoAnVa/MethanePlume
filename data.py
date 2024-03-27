@@ -8,11 +8,12 @@ from torchvision import transforms
 class PlumeSegmentationDataset():
     """SmokePlumeSegmentation dataset class."""
 
-    def __init__(self, datadir=None, segdir=None, band=[1,2,3,4,5,6,7,8,9,10,11,12,13], transform=None):
+    def __init__(self, datadir=None, segdir=None, band=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17], transform=None):
         """
         :param datadir: data directory
         :param segdir: label directory
         :param band: bands of the Sentinel-2 images to work with. A list of integer between 1 and 13 is expected corresponding to [B1,B2,B3,B4,B5,B6,B7,B8,B8a,B9,B10,B11,B12]
+        and where 14=NDVI, 15=NDBI, 16=BSI, 
         :param transform: transformations to apply
         """
         
@@ -57,8 +58,59 @@ class PlumeSegmentationDataset():
 
         # read in image data
         imgfile = rio.open(self.imgfiles[idx], nodata = 0)
-        imgdata = np.array([imgfile.read(i) for i in self.band])
+        imgdata = np.array([imgfile.read(i) for i in self.band if i not in [14,15,16,17]])
 
+        # Calculate NDVI 
+        if 14 in self.band:
+            B4 = imgfile.read(4).astype(float)
+            B8 = imgfile.read(8).astype(float)
+            NDVI = (B8 - B4) / ( B8 + B4 +1e-5)
+            NDVI = NDVI[None, :, :] # Ensure NDVI has three dimensions
+            if len(self.band) == 1:
+                imgdata=NDVI
+            else: 
+                imgdata = np.concatenate((imgdata, NDVI), axis=0)
+        
+        # Calculate NDBI
+        if 15 in self.band:
+            B12 = imgfile.read(12).astype(float)
+            B8 = imgfile.read(8).astype(float)
+            NDBI = (B12 - B8) / (B12 + B8 + 1e-5)
+            NDBI = NDBI[None, :, :]  # Ensure NDBI has three dimensions
+
+            if len(self.band) == 1:
+                imgdata=NDBI
+            else: 
+                imgdata = np.concatenate((imgdata, NDBI), axis=0)
+        
+
+        # Calculate BSI
+        if 16 in self.band:
+            B2 = imgfile.read(2).astype(float)
+            B4 = imgfile.read(4).astype(float)
+            B8 = imgfile.read(8).astype(float)
+            B12 = imgfile.read(12).astype(float)
+            BSI = ((B12 + B4) - (B8 + B2)) / ((B12 + B4) + (B8 + B2) +1e-5)
+            BSI = BSI[None, :, :]  # Ensure BSI has three dimensions
+
+            if len(self.band) == 1:
+                imgdata=BSI
+            else: 
+                imgdata = np.concatenate((imgdata, BSI), axis=0)
+        
+        # Calculate NDMI
+        if 17 in self.band:
+            B13 = imgfile.read(13).astype(float)
+            B12 = imgfile.read(12).astype(float)
+            NDMI = (B13 - B12) / (B13 + B12 +1e-5)
+            NDMI = NDMI[None, :, :]  # Ensure NDMI has three dimensions
+
+            if len(self.band) == 1:
+                imgdata=NDMI
+            else: 
+                imgdata = np.concatenate((imgdata, NDMI), axis=0)
+        
+            
         fptdata = np.loadtxt(self.segfiles[idx], delimiter=",", dtype=float)
         fptdata = np.array(fptdata)
 
@@ -89,8 +141,8 @@ class Crop(object):
 
         return {'idx': sample['idx'],
                 'band' : sample['band'],
-                'img': imgdata.copy()[:, 0:90, 0:90],
-                'fpt': sample['fpt'].copy()[0:90, 0:90],
+                'img': imgdata.copy()[:, 1:90, 1:90],
+                'fpt': sample['fpt'].copy()[1:90, 1:90],
                 'imgfile': sample['imgfile']}
 
 class Randomize(object):
@@ -131,8 +183,8 @@ class Normalize(object):
     standard deviations."""
     def __init__(self):
         
-        self.channel_means = np.array([1909.3802, 1900.5879, 2261.5823, 3164.3564, 3298.6106, 3527.9346, 3791.7458, 3604.5210, 3946.0535, 1223.0176, 27.1881, 4699.9775, 3989.9626])
-        self.channel_stds = np.array([ 498.8658,  507.0728,  573.1718,  965.0130, 1014.2232, 1069.5269, 1133.6522, 1073.3431, 1146.3250,  520.9219,   28.9335, 1360.9994, 1169.5753])
+        self.channel_means = np.array([1909.3802, 1900.5879, 2261.5823, 3164.3564, 3298.6106, 3527.9346, 3791.7458, 3604.5210, 3946.0535, 1223.0176, 27.1881, 4699.9775, 3989.9626, 0.06484, -0.966756, -0.268266, 0.969461])
+        self.channel_stds = np.array([498.8658,  507.0728,  573.1718,  965.0130, 1014.2232, 1069.5269, 1133.6522, 1073.3431, 1146.3250,  520.9219,   28.9335, 1360.9994, 1169.5753, 0.04521546, 0.132196162, 0.0554560, 0.133461])
     
     def __call__(self, sample):
         """
@@ -145,6 +197,29 @@ class Normalize(object):
             sample['img'].shape[0], 1, 1)
 
         return sample
+    
+class NormalizePerImage(object):
+    
+     def __call__(self, sample):
+        """
+        Normalize each image individually by its mean and standard deviation.
+        """
+
+        img = sample['img']
+        # Calculate mean and std for each channel of the current image
+        means = img.mean(axis=(1, 2), keepdims=True)
+        stds = img.std(axis=(1, 2), keepdims=True)
+
+        # Avoid division by zero
+        stds[stds == 0] = 1
+
+        # Normalize the image
+        normalized_img = (img - means) / stds
+
+        # Update the sample
+        sample['img'] = normalized_img
+        return sample
+
 
 class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
@@ -168,15 +243,15 @@ def create_dataset(*args, apply_transforms=True, **kwargs):
     :return: data set"""
     if apply_transforms:
         data_transforms = transforms.Compose([
-            Normalize(),
+            NormalizePerImage(),
             Crop(),
             Randomize(),
             ToTensor()
            ])
     else:
         data_transforms = transforms.Compose([
-            Normalize(),
             Crop(),
+            NormalizePerImage(),
             ToTensor()
            ])
 

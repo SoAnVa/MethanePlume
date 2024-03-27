@@ -1,42 +1,43 @@
-import os
 import numpy as np
-import torch
-from torch import nn, optim
-from tqdm.autonotebook import tqdm
-from sklearn.metrics import accuracy_score
-from torch.utils.data import DataLoader, random_split, RandomSampler
-from torch.utils.tensorboard import SummaryWriter
-import argparse
-from torchmetrics import JaccardIndex, Accuracy
-import time
-import random
-from torch.utils.data import ConcatDataset
+import rasterio as rio
+ # Make sure this import matches your dataset class
+from data import create_dataset 
 
-from model_unet import *
-from data import create_dataset
+def calculate_ndvi_mean_std(dataset):
+    ndvi_values = []
 
-bands = [1,2,3,4,5,6,7,8,9,10,11,12,13]
-# create the datasets
-PATH_D_TRAIN="data/DataTrain/augment_input_tiles/"
-PATH_S_TRAIN="data/DataTrain/augment_output_matrix/"
-PATH_D_TEST=os.getcwd()+"/data/DataTest/input_tiles/"
-PATH_S_TEST=os.getcwd()+"/data/DataTest/output_matrix/"
+    for idx in range(len(dataset)):
+        # Read the specific bands needed for NDVI calculation
+        with rio.open(dataset.imgfiles[idx]) as imgfile:
+            B11 = imgfile.read(11).astype(float)  
+            B12 = imgfile.read(12).astype(float)
+            B2 = imgfile.read(2).astype(float)  
+            B4 = imgfile.read(4).astype(float)  
 
-data_train = create_dataset(
-    datadir=PATH_D_TRAIN,
-    segdir=PATH_S_TRAIN,
-    band=bands,
-apply_transforms=True)
+        # Calculate NDVI
+        NDVI = (B12 - B11) / (B12 + B11 +1e-5)
+        if idx==1:
+            print(NDVI)
+            return NDVI
 
-# data_val = create_dataset(
-#     datadir=PATH_D_TEST,
-#     segdir=PATH_S_TEST,
-#     band=bands,
-#     apply_transforms=False)
+        # Flatten NDVI and add to list
+        ndvi_values.append(NDVI.flatten())
 
+    # Concatenate all NDVI values from the dataset to compute overall stats
+    all_ndvi_values = np.concatenate(ndvi_values)
 
-# Concatenate the two datasets
-#combined_dataset = ConcatDataset([data_train, data_val])
+    # Compute mean and standard deviation
+    mean_ndvi = np.mean(all_ndvi_values)
+    std_ndvi = np.std(all_ndvi_values)
+    print( np.mean( (all_ndvi_values-mean_ndvi)/std_ndvi) )
+          
+    return mean_ndvi, std_ndvi
 
-print(len(data_train))
-#print(len(data_train))
+# Assuming your dataset is initialized as follows
+data_dir = "data/DataTrain/input_tiles"
+mask_dir = "data/DataTrain/output_matrix"
+dataset = create_dataset(datadir=data_dir, segdir=mask_dir, band=[1,2,4,5], apply_transforms=False)
+
+# Calculate mean and standard deviation of NDVI
+mean_ndvi, std_ndvi = calculate_ndvi_mean_std(dataset)
+#print(f"NDVI Mean: {mean_ndvi}, NDVI Std: {std_ndvi}")
