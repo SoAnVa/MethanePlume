@@ -155,8 +155,6 @@ class Randomize(object):
             A.Flip(p=0.5),
             A.Transpose(p=0.5),
             A.OpticalDistortion(distort_limit=(-1.25, 1.25), shift_limit=(0, 0), p=0.5), #Ajout de la distorsion pour essayer d'avoir des plumes plus complexes
-            A.CLAHE(p=0.8), #augmenter le contraste des plumes avec le reste?
-            A.RandomBrightnessContrast(p=0.8) #simuler des conditions meteo differentes 
         ])
 
     def __call__(self, sample):
