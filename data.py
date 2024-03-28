@@ -3,7 +3,7 @@ import numpy  as np
 import os
 import rasterio as rio
 from torchvision import transforms
-
+import albumentations as A
 
 class PlumeSegmentationDataset():
     """SmokePlumeSegmentation dataset class."""
@@ -148,33 +148,53 @@ class Crop(object):
 class Randomize(object):
     """Randomize image orientation including rotations by integer multiples of
        90 deg, (horizontal) mirroring, and (vertical) flipping."""
+    
+    def __init__(self):
+        self.transform = A.Compose([
+            A.RandomRotate90(p=0.5),
+            A.Flip(p=0.5),
+            A.Transpose(p=0.5),
+            A.OpticalDistortion(distort_limit=(-1.25, 1.25), shift_limit=(0, 0), p=0.5), #Ajout de la distorsion pour essayer d'avoir des plumes plus complexes
+            A.CLAHE(p=0.8), #augmenter le contraste des plumes avec le reste?
+            A.RandomBrightnessContrast(p=0.8) #simuler des conditions meteo differentes 
+        ])
 
     def __call__(self, sample):
         """
         :param sample: sample to be randomized
         :return: randomized sample
         """
-        imgdata = sample['img']
+
         fptdata = sample['fpt']
 
-        # mirror horizontally
-        mirror = np.random.randint(0, 2)
-        if mirror:
-            imgdata = np.flip(imgdata, 2)
-            fptdata = np.flip(fptdata, 1)
-        # flip vertically
-        flip = np.random.randint(0, 2)
-        if flip:
-            imgdata = np.flip(imgdata, 1)
-            fptdata = np.flip(fptdata, 0)
-        # rotate by [0,1,2,3]*90 deg
-        rot = np.random.randint(0, 4)
-        imgdata = np.rot90(imgdata, rot, axes=(1,2))
-        fptdata = np.rot90(fptdata, rot, axes=(0,1))
+        imgdata = sample['img'].transpose(1, 2, 0)
+        fptdata_dummy = np.stack((fptdata,) * 3, axis=-1)
+
+        # Apply albumentations transforms
+        augmented = self.transform(image=imgdata, mask=fptdata_dummy)
+        imgdata = augmented['image']
+        fptdata = augmented['mask'][:, :, 0]  # Get back the 2D mask
+
+        # # mirror horizontally
+        # mirror = np.random.randint(0, 2)
+        # if mirror:
+        #     imgdata = np.flip(imgdata, 2)
+        #     fptdata = np.flip(fptdata, 1)
+        # # flip vertically
+        # flip = np.random.randint(0, 2)
+        # if flip:
+        #     imgdata = np.flip(imgdata, 1)
+        #     fptdata = np.flip(fptdata, 0)
+        # # rotate by [0,1,2,3]*90 deg
+        # rot = np.random.randint(0, 4)
+        # imgdata = np.rot90(imgdata, rot, axes=(1,2))
+        # fptdata = np.rot90(fptdata, rot, axes=(0,1))
+
+
 
         return {'idx': sample['idx'],
                 'band' : sample['band'],
-                'img': imgdata.copy(),
+                'img': imgdata.transpose(2, 0, 1).copy(),
                 'fpt': fptdata.copy(),
                 'imgfile': sample['imgfile']}
 
@@ -243,8 +263,8 @@ def create_dataset(*args, apply_transforms=True, **kwargs):
     :return: data set"""
     if apply_transforms:
         data_transforms = transforms.Compose([
-            NormalizePerImage(),
             Crop(),
+            NormalizePerImage(),
             Randomize(),
             ToTensor()
            ])

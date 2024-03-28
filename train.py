@@ -53,30 +53,6 @@ def train_model(model, epochs, opt, loss, batch_size):
     # Original dataset paths
     PATH_D_TRAIN = os.getcwd() + "/data/DataTrain/input_tiles/"
     PATH_S_TRAIN = os.getcwd() + "/data/DataTrain/output_matrix/"
-
-    # # Augmented dataset paths
-    # PATH_D_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_input_tiles/"
-    # PATH_S_TRAIN_AUG = os.getcwd() + "/data/DataTrain/augment_output_matrix/"
-    
-    # # Load original dataset
-    # data_train_original = create_dataset(
-    #     datadir=PATH_D_TRAIN,
-    #     segdir=PATH_S_TRAIN,
-    #     band=bands,
-    #     apply_transforms=True  
-    # )
-    
-    # # Load augmented dataset
-    # data_train_augmented = create_dataset(
-    #     datadir=PATH_D_TRAIN_AUG,
-    #     segdir=PATH_S_TRAIN_AUG,
-    #     band=bands,
-    #     apply_transforms=False  
-    # )
-    
-    # Combine datasets
-    #data_train = torch.utils.data.ConcatDataset([data_train_original, data_train_augmented])
-    
     
     # Load original dataset
     data_train= create_dataset(
@@ -113,6 +89,13 @@ def train_model(model, epochs, opt, loss, batch_size):
         train_ious = []
         train_acc_total = 0
         train_area = []
+
+        #Learning rate variable
+        if epoch == 30:
+            for param_group in opt.param_groups:
+                param_group['lr'] = 0.001
+                print(f"Lowering learning rate to {param_group['lr']} at epoch {epoch+1}")
+
 
         for i, batch in enumerate(train_dl):
             x = batch['img'].float().to(device)
@@ -273,8 +256,8 @@ if __name__ == '__main__':
     #loss = nn.BCEWithLogitsLoss()
     loss = CustomLoss(smooth=1)
     # initialize optimizer
-    opt = optim.Adam(model.parameters(),lr=lr)
-    
+    opt = optim.AdamW(model.parameters(),lr=lr)
+
     # create the directory to save the models
     PATH_MOD=os.getcwd()+"/mod/"
     if not os.path.exists(PATH_MOD):
