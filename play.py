@@ -26,7 +26,8 @@ print('shape of the mask',mask.shape)
 # Define a transformation
 transform = A.Compose([
     A.OpticalDistortion(distort_limit=(-1.25, 1.25), shift_limit=(0, 0), p=1.0), # Setting p=1 to ensure the transform is always applied
-
+    #A.ElasticTransform(alpha=500, sigma=120 * 0.05, alpha_affine=120 * 0.03, p=1)
+    A.GridDistortion(p=1)
 ])
 
 # Convert mask to a 3-channel dummy image

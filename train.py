@@ -205,9 +205,10 @@ def train_model(model, epochs, opt, loss, batch_size):
 
 
 class CustomLoss(nn.Module):
-    def __init__(self, smooth=1):
+    def __init__(self, smooth=1, power=1.75):
         super(CustomLoss, self).__init__()
         self.smooth = smooth
+        self.power = power
         self.bce_with_logits_loss = nn.BCEWithLogitsLoss()
 
     def forward(self, inputs, targets):

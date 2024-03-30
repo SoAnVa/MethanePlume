@@ -3,7 +3,7 @@ import numpy  as np
 import os
 import rasterio as rio
 from torchvision import transforms
-import albumentations as A
+#import albumentations as A
 
 class PlumeSegmentationDataset():
     """SmokePlumeSegmentation dataset class."""
@@ -149,13 +149,13 @@ class Randomize(object):
     """Randomize image orientation including rotations by integer multiples of
        90 deg, (horizontal) mirroring, and (vertical) flipping."""
     
-    def __init__(self):
-        self.transform = A.Compose([
-            A.RandomRotate90(p=0.5),
-            A.Flip(p=0.5),
-            A.Transpose(p=0.5),
-            A.OpticalDistortion(distort_limit=(-1.25, 1.25), shift_limit=(0, 0), p=0.5), #Ajout de la distorsion pour essayer d'avoir des plumes plus complexes
-        ])
+    # def __init__(self):
+    #     self.transform = A.Compose([
+    #         A.RandomRotate90(p=0.5),
+    #         A.Flip(p=0.5),
+    #         A.Transpose(p=0.5),
+    #         A.OpticalDistortion(distort_limit=(-1.25, 1.25), shift_limit=(0, 0), p=0.5), #Ajout de la distorsion pour essayer d'avoir des plumes plus complexes
+    #     ])
 
     def __call__(self, sample):
         """
@@ -164,35 +164,36 @@ class Randomize(object):
         """
 
         fptdata = sample['fpt']
+        imgdata = sample['img']
 
-        imgdata = sample['img'].transpose(1, 2, 0)
-        fptdata_dummy = np.stack((fptdata,) * 3, axis=-1)
+        # imgdata=imgdata.transpose(1, 2, 0)
+        # fptdata_dummy = np.stack((fptdata,) * 3, axis=-1)
 
-        # Apply albumentations transforms
-        augmented = self.transform(image=imgdata, mask=fptdata_dummy)
-        imgdata = augmented['image']
-        fptdata = augmented['mask'][:, :, 0]  # Get back the 2D mask
+        # # Apply albumentations transforms
+        # augmented = self.transform(image=imgdata, mask=fptdata_dummy)
+        # imgdata = augmented['image']
+        # fptdata = augmented['mask'][:, :, 0]  # Get back the 2D mask
 
-        # # mirror horizontally
-        # mirror = np.random.randint(0, 2)
-        # if mirror:
-        #     imgdata = np.flip(imgdata, 2)
-        #     fptdata = np.flip(fptdata, 1)
-        # # flip vertically
-        # flip = np.random.randint(0, 2)
-        # if flip:
-        #     imgdata = np.flip(imgdata, 1)
-        #     fptdata = np.flip(fptdata, 0)
-        # # rotate by [0,1,2,3]*90 deg
-        # rot = np.random.randint(0, 4)
-        # imgdata = np.rot90(imgdata, rot, axes=(1,2))
-        # fptdata = np.rot90(fptdata, rot, axes=(0,1))
+        # mirror horizontally
+        mirror = np.random.randint(0, 2)
+        if mirror:
+            imgdata = np.flip(imgdata, 2)
+            fptdata = np.flip(fptdata, 1)
+        # flip vertically
+        flip = np.random.randint(0, 2)
+        if flip:
+            imgdata = np.flip(imgdata, 1)
+            fptdata = np.flip(fptdata, 0)
+        # rotate by [0,1,2,3]*90 deg
+        rot = np.random.randint(0, 4)
+        imgdata = np.rot90(imgdata, rot, axes=(1,2))
+        fptdata = np.rot90(fptdata, rot, axes=(0,1))
 
 
 
         return {'idx': sample['idx'],
                 'band' : sample['band'],
-                'img': imgdata.transpose(2, 0, 1).copy(),
+                'img': imgdata.copy(),
                 'fpt': fptdata.copy(),
                 'imgfile': sample['imgfile']}
 
@@ -224,17 +225,11 @@ class NormalizePerImage(object):
         """
 
         img = sample['img']
-        # Calculate mean and std for each channel of the current image
         means = img.mean(axis=(1, 2), keepdims=True)
         stds = img.std(axis=(1, 2), keepdims=True)
-
-        # Avoid division by zero
+        # Eviter zeros
         stds[stds == 0] = 1
-
-        # Normalize the image
         normalized_img = (img - means) / stds
-
-        # Update the sample
         sample['img'] = normalized_img
         return sample
 
@@ -268,6 +263,7 @@ def create_dataset(*args, apply_transforms=True, **kwargs):
            ])
     else:
         data_transforms = transforms.Compose([
+            #Normalize(),
             Crop(),
             NormalizePerImage(),
             ToTensor()

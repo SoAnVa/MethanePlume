@@ -1,14 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from data import create_dataset  # Assurez-vous que cela correspond à votre implémentation
+from data import create_dataset  
 
-# Configurer les chemins et autres paramètres selon vos besoins
+
 data_dir = "data/DataTrain/input_tiles"
 mask_dir = "data/DataTrain/output_matrix"
-bands = [2,3,4]  # Exemple pour les bandes RGB de Sentinel-2
+bands = [4,3,2] 
 #bands = [1,2,3,4,5,6,7,8,9,10,11,12,13,17]
-# Créer l'ensemble de données
+
+# Créer le dataset
 dataset = create_dataset(datadir=data_dir, segdir=mask_dir, band=bands, apply_transforms=False)
 #dataset_augment = create_dataset(datadir=data_dir, segdir=mask_dir, band=bands, apply_transforms=True)
 
